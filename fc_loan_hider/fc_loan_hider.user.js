@@ -5,7 +5,7 @@
 // @description Enables you to hide loans you don't like so that you don't bid on or buy parts accidentally in future
 // @match       https://www.fundingcircle.com/secondary-market
 // @require     https://sdk.amazonaws.com/js/aws-sdk-2.0.0-rc13.min.js
-// @updateURL   https://gist.github.com/realflash/bc0e2c5b451cf5ef5f8f
+// @updateURL   https://github.com/realflash/odds-and-ends/raw/master/fc_loan_hider/fc_loan_hider.user.js
 // @copyright   2014+, Ian Gibbs
 // @grant       none
 // ==/UserScript==
