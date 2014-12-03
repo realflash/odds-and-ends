@@ -4,6 +4,7 @@
 // @version     0.1
 // @description Enables you to hide loans you don't like so that you don't bid on or buy parts accidentally in future
 // @match       https://www.fundingcircle.com/secondary-market
+// @match		https://www.fundingcircle.com/lend/loan-requests/*
 // @require     https://sdk.amazonaws.com/js/aws-sdk-2.0.0-rc13.min.js
 // @updateURL   https://github.com/realflash/odds-and-ends/raw/master/fc_loan_hider/fc_loan_hider.user.js
 // @copyright   2014+, Ian Gibbs
@@ -30,15 +31,40 @@ db.listTables({}, function (err, data)
 	if(!found) window.alert("ERROR: The configured table '" + tableName + "' does not exist in DynamoDB region '" + region + "'");
 });
 
-openAdvancedSettings();
+var primary = onPrimaryMarket();		// Work out whether we are on the primary market or the secondary market
+
+openAdvancedSettings();					// If there are advanced filters, show them
+
 var timeout;
-listenForChanges();
+if(primary)
+{	// in the primary market every click that would change the content of the table reloads the page
+	writeVisiblityControls();			// so we can write our links straight away
+}
+else
+{	// in the secondary market, the table content reloads without the page reloading
+	listenForChanges();					// so we listen to the div containing the table for changes and then write our links
+}
+
+// Detect whether the open page is the primary or secondary market
+function onPrimaryMarket()
+{
+	if(document.URL == 'https://www.fundingcircle.com/lend/loan-requests/') return true;
+	else return false;
+}
 
 function openAdvancedSettings()
 {
-	$('fieldset.advanced-filters').css("display", "block");
-	$('a#hide-advanced-filters').css("display", "inline");
-	$('a#show-advanced-filters').css("display", "none");
+	if(primary)
+	{
+		$('div#filter_form').css("display", "block");
+		$('a#showfilterbtn > span').text("Hide Filters");
+	}
+	else
+	{
+		$('fieldset.advanced-filters').css("display", "block");
+		$('a#hide-advanced-filters').css("display", "inline");
+		$('a#show-advanced-filters').css("display", "none");
+	}
 }
 
 function listenForChanges()
@@ -59,26 +85,47 @@ function dontListenForChanges()
 
 function writeVisiblityControls()
 {
-	dontListenForChanges();
-	$('<th>Visibility</th>').insertBefore("table.loan-parts > thead:nth-child(1) > tr:nth-child(1) > th:nth-child(1)");
-	var hideLink = $('<td class="loan-details"><a>Hide</a></td>');
-	hideLink.click(function() { toggle($(this)) });
-	hideLink.insertBefore("td.loan-details");
-	$("tr").data("visible", "true");
+	if(primary)	// the tables are built differently, so we need different jquery actions for each
+	{
+		$("form#watch_form > table:nth-child(1) > thead:nth-child(1) > tr:nth-child(1) > th:nth-child(1)").text("Visibility");
+		$("form#watch_form > table:nth-child(1) > tbody > tr > td:nth-child(1)").replaceWith("<td style='cursor: pointer;'><a>Hide</a></td>");
+		$("form#watch_form > table:nth-child(1) > tbody > tr > td:nth-child(1)").click(function() { toggle($(this)) });
+	}
+	else
+	{
+		dontListenForChanges();
+		$('<th>Visibility</th>').insertBefore("table.loan-parts > thead:nth-child(1) > tr:nth-child(1) > th:nth-child(1)");
+		var hideLink = $('<td class="loan-details"><a>Hide</a></td>');
+		hideLink.click(function() { toggle($(this)) });
+		hideLink.insertBefore("td.loan-details");
+	}
+	$("tr").data("visible", "true");	// add our own data to each row in the table
 
 	// Load the state of all the loans on the page
 	// Collect all the loan IDs
 	var loan_ids = [];
 	var loan_rows = [];
-	$("tr").each(function(index) {
-		var children = $(this).children("td");
-		if (children.length > 0)
-		{
-			var id = children.first().next().children("p").first().text().match(/[0-9]+/)[0];
-			loan_ids.push({loan_id: {N: id}});
-			loan_rows.push({id: id, row: $(this)});
-		}
-	});
+	if(primary)	// The loan ID is in a different place on the two pages
+	{
+ 		$("form#watch_form > table:nth-child(1) > tbody > tr").each(function(index) {
+ 			var id = $(this).attr("id").match(/[0-9]+/)[0];
+ 			loan_ids.push({loan_id: {N: id}});
+ 			loan_rows.push({id: id, row: $(this)});
+ 		});
+	}
+	else
+	{
+		$("tr").each(function(index) {
+			var children = $(this).children("td");
+			if (children.length > 0)
+			{
+				var id = children.first().next().children("p").first().text().match(/[0-9]+/)[0];
+				loan_ids.push({loan_id: {N: id}});
+				loan_rows.push({id: id, row: $(this)});
+			}
+		});
+	}
+
 	// Get all those which are stored in the DB
 	var req = {};
 	req[tableName] = { Keys: loan_ids };
@@ -101,23 +148,27 @@ function writeVisiblityControls()
 				}
 			}
 		});
-		setTimeout(function() {
-			console.log("re-enable listen");
-			listenForChanges();
-		}, 2000);
+	
+	if(!primary) setTimeout(function() {
+		console.log("re-enable listen");
+		listenForChanges();
+	}, 2000);
 }
 	
 // Hides part of a row so it can't be clicked, and logs what was hidden to a DB
 function toggle(source)
 {
 	console.log("toggle");
-	dontListenForChanges();
+	if(!primary) dontListenForChanges();
+
 	var row = source.parent();
 	var details = row.children("td").first().next();
-	var loan_id = details.children("p").first().text().match(/[0-9]+/)[0];
 	var loan_tag = details.children("a").first();
 	var loan_link = loan_tag.attr("href");
 	var loan_description = loan_tag.text();
+	var loan_id;
+	if(primary)	loan_id = row.attr("id").match(/[0-9]+/)[0];
+	else loan_id = details.children("p").first().text().match(/[0-9]+/)[0];
 	
 	if(row.data("visible") == "true")
 	{
@@ -151,7 +202,7 @@ function toggle(source)
 				if (err) throw(err.stack); // an error occurred
 			});
 	}
-	setTimeout(function() {
+	if(!primary) setTimeout(function() {
 		console.log("re-enable listen");
 		listenForChanges();
 	}, 2000);
