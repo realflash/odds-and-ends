@@ -5,13 +5,13 @@ Address Bot
 Retrieves up to 999 users from the Azure AD Graph API and checks their mobilde phone and fax fields to make sure they are filled out fully and properly. It's a mild example of how to access the Azure AD Graph API from perl.
 
 # Installationa of prerequisites (on CentOS)
-yum -y install git perl-Log-Log4perl perl-Moo perl-YAML cpanm
-git clone https://github.com/mschilli/oauth-cmdline.git
-cd oauth-cmdline
-perl Makefile.pl
-make
-make install
-cpanm Mojo::Base
+* `yum -y install git perl-Log-Log4perl perl-Moo perl-YAML cpanm`
+* `git clone https://github.com/mschilli/oauth-cmdline.git`
+* `cd oauth-cmdline`
+* `perl Makefile.pl`
+* `make`
+* `make install`
+* `cpanm Mojo::Base`
 
 # Setup
 * Set up a temporary web service for callbacks as described in the docs for OAuth::Cmdline
