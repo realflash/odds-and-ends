@@ -213,6 +213,7 @@ function hide(row)
 {
 	// Now the details have been stored, we can hide it from view
 	row.children("td").first().next().children("a").text("Hidden");
+	row.children("td").first().next().children("a").css("color", "gray");
 	row.children("td").first().children("a").text("Show");
 	row.data("visible", "false");
 }
@@ -222,6 +223,7 @@ function show(row, description)
 {
 	// Now the details have been stored, we can hide it from view
 	row.children("td").first().next().children("a").text(description);
+	row.children("td").first().next().children("a").("color", "rgb(9, 127, 201)");
 	row.children("td").first().children("a").text("Hide");
 	row.data("visible", "true");
 }
