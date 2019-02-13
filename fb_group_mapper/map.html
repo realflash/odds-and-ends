@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Simple Map</title>
+        <meta name="viewport" content="initial-scale=1.0">
+            <meta charset="utf-8"/>
+                <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script>
+    var map;
+    var service;
+	var groups = [
+	 {location: 'Reading', count: 5, radius: 10},
+	];
+
+    function initMap()
+    {
+        map = new google.maps.Map(document.getElementById('map'), { center: {lat: 51.4, lng: -0.4},
+                                                                    zoom: 10 });
+        service = new google.maps.places.PlacesService(map);
+        
+        var request = {
+            bounds: map.getBounds(),
+            query: 'Lightwater'
+        };
+        service.textSearch(request, callback);
+
+		groups.forEach(function(group) {
+			service.textSearch({
+            bounds: map.getBounds(),
+            query: group.location}, callback);
+		});
+
+	}
+	
+	function callback(results, status)
+	{
+		if (status == google.maps.places.PlacesServiceStatus.OK)
+		{
+			for (var i = 0; i < results.length; i++)
+			{
+				var place = results[i];
+				addMarker(results[i]);
+			}
+			console.log("Matches: " + results.length);
+		}
+	}
+
+	function addMarker(place, label)
+	{
+		var marker = new google.maps.Marker(
+		{
+			map: map,
+			position: place.geometry.location,
+			label: label,
+/*			icon: {
+				url: 'http://maps.gstatic.com/mapfiles/circle.png',
+				anchor: new google.maps.Point(10, 10),
+				scaledSize: new google.maps.Size(10, 17)
+			} */
+		});
+	}
+          
+    </script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDz1hF7AY0JbqeGU516QMfr_LU5BbBdjbg&callback=initMap&region=GB&libraries=places" async defer></script>
+    </body>
+</html>
